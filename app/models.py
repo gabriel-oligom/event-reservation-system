@@ -1,12 +1,16 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .database import Base
+from datetime import datetime, timezone
 
 """
 Understanding the modules and imports
+(They are all types and helpers from SQLAlchemy)
 - Column : Each attribute of the class turns into a column in the database
 - Integer, String : Data types of the columns 
 - ForeignKey : Connect different tables
+- DateTime : Add a column to store date and/or time
+- UniqueConstraint : Ensures that values in one or more columns are unique inside the table
 - relationship : Make easier the queries between tables, define relations
 """
 
@@ -32,3 +36,14 @@ class Seat(Base):
 
     # Inverse relation to access Event
     event = relationship("Event", back_populates="seats")
+    reservation = relationship("Reservation", back_populates="seat", uselist=False)
+
+class Reservation(Base):
+    __tablename__ = "reservations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False) 
+    seat_id = Column(Integer, ForeignKey("seats.id"), unique=True) # Create an unique index to this column
+    reserved_at = Column(DateTime, nullable=False, default=lambda:datetime.now(timezone.utc)) #
+
+    seat = relationship("Seat", back_populates="reservation", uselist=False) # sets the current time in UTC when a new reservation is created
