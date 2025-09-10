@@ -8,16 +8,19 @@ Optional : we  use when a field can be 'None'
 """
 
 class EventBase(BaseModel):
+    # Common fields for Event schema
     name: str = Field(..., title="Event name", example="MTV Unplugged")
     total_seats: int = Field(..., title="Total seats", ge=1, example=5)
 
 
 class EventCreate(EventBase):
+    # Schema for creating an event
     pass
 
 
 class EventRead(EventBase):
+    # Schema for reading an event (includes ID)
     id: int
 
     class Config:
-        orm_mode = True
+        orm_mode = True 

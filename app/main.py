@@ -13,7 +13,7 @@ app = FastAPI() # Create the instance of the application
 def get_db():
     db = SessionLocal()
     try:
-        yield db
+        yield db # provides the session for routes that need it
     finally:
         db.close()
 
@@ -23,11 +23,12 @@ def root():
     return {"message": "API is working."}
 
 
-@app.get("/events", response_model=List[schemas.EventRead])
-def read_events(db: Session = Depends(get_db)):
+@app.get("/events", response_model=List[schemas.EventRead]) # return the data as a list
+def read_events(db: Session = Depends(get_db)): # it means that the 'read_events' route depends on 'get_db' to work
     """
     Read-only endpoint: fetch all events from DB
-    - db: a SQLAlchemy Session injected by FastAPI (get_db)
+    - db: a variable with SQLAlchemy Session injected by FastAPI (get_db)
+    - Session: just a type annotation telling that db is expected to be a SQLAlchemy session
     - Depends: inject dependencies
     - response_model: tells FastAPI/Pydantic to serialize the output using EventRead 
     """

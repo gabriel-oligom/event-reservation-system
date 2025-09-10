@@ -36,7 +36,8 @@ class Seat(Base):
 
     # Inverse relation to access Event
     event = relationship("Event", back_populates="seats")
-    reservation = relationship("Reservation", back_populates="seat", uselist=False)
+
+    reservation = relationship("Reservation", back_populates="seat", uselist=False) # 'uselist=False' tells SQLAlchemy to return a single object instead of a list
 
 class Reservation(Base):
     __tablename__ = "reservations"

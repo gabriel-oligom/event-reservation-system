@@ -6,8 +6,9 @@ from dotenv import load_dotenv
 """
 Understanding the modules and libraries
 - create_engine: create connection between python and the database. Connect and send sql commands to postgreSQL
+- orm: allows you to work with database tables as Python objects
 - declarative_base: classes recognized as tables
-- sessionmaker: create objects to use in queries
+- sessionmaker: create objects to use in database queries 
 """
 
 load_dotenv()
