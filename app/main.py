@@ -47,6 +47,20 @@ def read_events(db: Session = Depends(get_db)): # it means that the 'read_events
     return events
 
 
+@app.get("/events/{event_id}", response_model=EventRead, tags=["events"])
+def read_event(event_id: int, db: Session = Depends(get_db)):
+    """
+    Read a single event by its ID
+    - event_id: path parameter (FastAPI converts it to 'int')
+    - db: SQLAlchemy Session injected via 'Depends(get_db)'
+    """
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return event
+
+
 @app.post("/events", response_model=EventRead, status_code=status.HTTP_201_CREATED, tags=["events"])
 def create_event(event_in: EventCreate, db: Session = Depends(get_db)):
     """
