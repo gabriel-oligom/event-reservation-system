@@ -26,3 +26,12 @@ class EventRead(EventBase):
 
     class Config:
         orm_mode = True 
+
+
+class SeatRead(BaseModel):
+    id: int
+    number: int = Field(..., Title="Seat number", example=1)
+    status: str = Field(..., Title="Seat status", example="available")
+
+    class config:
+        orm_mode= True # Allows Pydantic to convert 'models.Seat' (SQLAlchemy model) instances to JSON without manual transformation
