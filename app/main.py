@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from . import models
-from .schemas import EventRead, EventCreate
+from .schemas import EventRead, EventCreate, SeatRead
 from .database import SessionLocal, engine
 
 """
@@ -59,6 +59,21 @@ def read_event(event_id: int, db: Session = Depends(get_db)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return event
+
+
+@app.get("/events/{event_id}/seats", response_model=List[SeatRead], tags=["events"])
+def read_event_seats(event_id, db: Session = Depends(get_db)):
+    """
+    Return all seats for a given event
+    - event_id: path parameter (int)
+    - db: SQLAlchemy Session injected by Depends(get_db)
+    """
+    event = db.get(models.Event, event_id) # To ensure that event exists (gives 404 if not)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    seats = db.query(models.Seat).filter(models.Seat.event_id == event_id).order_by(models.Seat.number).all()
+    return seats
 
 
 @app.post("/events", response_model=EventRead, status_code=status.HTTP_201_CREATED, tags=["events"])
