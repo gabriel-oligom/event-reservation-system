@@ -25,3 +25,11 @@ Understanding the arguments inside sessionmaker
 - autoflush=False : you need to call 'ssession.flush()' to send changes before doing queries
 - bind=engine : associate 'Session' with 'engine'
 """
+
+# Opens a DB session for each request and closes it afterwards
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db # provides the session for routes that need it
+    finally:
+        db.close() # and then it closes
