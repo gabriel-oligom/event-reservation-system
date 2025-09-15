@@ -20,3 +20,17 @@ def read_event_seats(event_id, db: Session = Depends(get_db)):
     
     seats = db.query(models.Seat).filter(models.Seat.event_id == event_id).order_by(models.Seat.number).all()
     return seats
+
+@router.get("/{seat_id}", response_model=SeatRead)
+def read_event_seat(event_id: int, seat_id: int, db: Session = Depends(get_db)):
+    """
+    Return a single seat for a given event
+    URL: GET /events/{event_id}/seats/{seat_id}
+    """
+
+    # A query for the seat that has this ID and belongs to this event
+    seat = db.query(models.Seat).filter(models.Seat.id == seat_id, models.Seat.event_id == event_id).first()
+
+    if not seat:
+        raise HTTPException(status_code=404, detail="Seat not found for this event")
+    return seat
