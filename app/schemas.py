@@ -1,11 +1,13 @@
 from pydantic import BaseModel, Field
 from typing import Optional
+from datetime import datetime
 
 """
 Pydantic: a module that validates and structures data before it's processed or stored in the database
 BaseModel : defines the structure and validation rules for data models. It's base class of Pydantic, so all schemas inherit from it
 Field : is used to metadata, like 'title', 'example', and validation like 'ge' and 'le'
 Optional : we use when a field can be 'None', when is not mandatory
+datetime : used as a timestamp to know when a reservation was created
 """
 
 class EventBase(BaseModel):
@@ -30,8 +32,22 @@ class EventRead(EventBase):
 
 class SeatRead(BaseModel):
     id: int
-    number: int = Field(..., Title="Seat number", example=1)
-    status: str = Field(..., Title="Seat status", example="available")
+    number: int = Field(..., title="Seat number", example=1)
+    status: str = Field(..., title="Seat status", example="available")
 
     class config:
         orm_mode= True # Allows Pydantic to convert 'models.Seat' (SQLAlchemy model) instances to JSON without manual transformation
+
+
+class ReservationCreate(BaseModel): # input schema (defines which data the client must provide to create a reservation)
+    user_id: str = Field(..., title="User UUID", example="123e4567-e89b-12d3-a456-426614174000")
+
+
+class ReservationRead(BaseModel): # output schema (defines which data is returned to the client)
+    id: int
+    user_id: str
+    seat_id: int
+    reserved_at: datetime
+
+    class config:
+        orm_mode = True
