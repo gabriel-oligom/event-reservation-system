@@ -39,6 +39,7 @@ class Seat(Base):
 
     reservation = relationship("Reservation", back_populates="seat", uselist=False) # 'uselist=False' tells SQLAlchemy to return a single object instead of a list
 
+
 class Reservation(Base):
     __tablename__ = "reservations"
 

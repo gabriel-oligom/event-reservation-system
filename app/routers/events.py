@@ -7,7 +7,7 @@ from ..database import get_db
 
 """
 Understanding Core Concepts
-- APIRouter :
+- APIRouter : used to organize routes into separate files or sections, making the code cleaner and easier to manage
 - HTTPException : used to raise custom HTTP errors with status codes and messages
 - status : provides standard HTTP status codes like 201 (Created), 400 (Bad Request), etc
 - raise : used to interrupt the flow and throw an error intentionally. Return HTTP errors with custom status codes and messages
@@ -71,6 +71,6 @@ def create_event(event_in: EventCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_event)
     except Exception as e:
-        db.rollback() # Undo partial changes
+        db.rollback() # 'rollback' ensures DB stays consistent if anything fails, prevents partial writes and sends clear error response
         raise HTTPException(status_code=500, detail="Could not create event") from e
     return db_event
