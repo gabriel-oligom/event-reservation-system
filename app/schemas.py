@@ -51,3 +51,7 @@ class ReservationRead(BaseModel): # output schema (defines which data is returne
 
     class config:
         orm_mode = True
+
+
+class ReservationCancel(BaseModel): # schema for reservation cancellation request, identifying the user by UUID.
+    user_id: str = Field(..., title="User UUID", example="123e4567-e89b-12d3-a456-426614174000")
