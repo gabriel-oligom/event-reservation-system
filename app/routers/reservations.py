@@ -6,7 +6,7 @@ from ..database import get_db
 from typing import List
 
 router_reservation_by_seat = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/reservation", tags=["reservations"])
-router_reservations_by_event = APIRouter(prefix="events/{event_id}/reservations", tags=["reservations"])
+router_reservations_by_event = APIRouter(prefix="/events/{event_id}/reservations", tags=["reservations"])
 
 @router_reservation_by_seat.post("/", response_model=ReservationRead, status_code=status.HTTP_201_CREATED)
 def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate, db: Session = Depends(get_db)):
