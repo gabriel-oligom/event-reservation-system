@@ -26,6 +26,13 @@ def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate,
         if seat.status != "available":
             raise HTTPException(status_code=409, detail=f"Seat is not available (status: {seat.status})")
         
+        existing_user_reservation = (db.query(models.Reservation)
+                                     .join(models.Seat, models.Reservation.seat_id == models.Seat.id)
+                                     .filter(models.Seat.event_id == event_id, models.Reservation.user_id == reservation_in.user_id).first())
+        
+        if existing_user_reservation:
+            raise HTTPException(status_code=409, detail="User already has a reservation for this event")
+        
         db_res = models.Reservation(user_id=reservation_in.user_id, seat_id=seat.id)
         db.add(db_res)
         seat.status = "reserved"
