@@ -10,7 +10,8 @@ app = FastAPI() # Create the instance of the application
 
 app.include_router(events.router)
 app.include_router(seats.router)
-app.include_router(reservations.router)
+app.include_router(reservations.router_seat)
+app.include_router(reservations.router_event)
 
 @app.get("/")
 def root():

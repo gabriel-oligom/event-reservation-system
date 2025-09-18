@@ -3,10 +3,12 @@ from sqlalchemy.orm import Session
 from .. import models
 from ..schemas import ReservationCreate, ReservationRead, ReservationCancel
 from ..database import get_db
+from typing import List
 
-router = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/reservation", tags=["reservations"])
+router_seat = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/reservation", tags=["reservations"])
+router_event = APIRouter(prefix="events/{event_id}/reservations", tags=["reservations"])
 
-@router.post("/", response_model=ReservationRead, status_code=status.HTTP_201_CREATED)
+@router_seat.post("/", response_model=ReservationRead, status_code=status.HTTP_201_CREATED)
 def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate, db: Session = Depends(get_db)):
     """
     Reserve a specific seat for a user
@@ -39,7 +41,7 @@ def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate,
     return db_res
 
 
-@router.delete("/", status_code=status.HTTP_200_OK)
+@router_seat.delete("/", status_code=status.HTTP_200_OK)
 def cancel_reservation(event_id: int, seat_id: int, cancel_in: ReservationCancel, db: Session = Depends(get_db)):
     """
     Cancel reservation for a specific seat (DELETE /events/{event_id}/seats/{seat_id}/reservation)
@@ -75,3 +77,29 @@ def cancel_reservation(event_id: int, seat_id: int, cancel_in: ReservationCancel
         raise HTTPException(status_code=500, detail="Could not cancel reservation") from e
     
     return {"detail": "Reservation cancelled", "seat_id": seat.id}
+
+
+@router_event.get("/", response_model=List[ReservationRead])
+def list_reservations(event_id: int, db: Session = Depends(get_db)):
+    """
+    List all reservations for a given event
+    """
+
+    # search for the event in the database, using the given ID
+    event = db.get(models.Event, event_id)
+
+    # if the event doesn't exist, return error 404
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    reservations = (db.query(models.Reservation)
+                    .join(models.Seat, models.Reservation.seat_id == models.Seat.id)
+                    .filter(models.Seat.event_id == event_id)
+                    .order_by(models.Reservation.reserved_at).all())
+    """
+    Query all reservations associated with the event:
+    - Performs a join with the Seat table to access the event_id
+    - Filters only the seats that belong to the current event
+    - Orders the reservations by the date/time they were made
+    """
+    return reservations
