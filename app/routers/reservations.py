@@ -5,10 +5,10 @@ from ..schemas import ReservationCreate, ReservationRead, ReservationCancel
 from ..database import get_db
 from typing import List
 
-router_seat = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/reservation", tags=["reservations"])
-router_event = APIRouter(prefix="events/{event_id}/reservations", tags=["reservations"])
+router_reservation_by_seat = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/reservation", tags=["reservations"])
+router_reservations_by_event = APIRouter(prefix="events/{event_id}/reservations", tags=["reservations"])
 
-@router_seat.post("/", response_model=ReservationRead, status_code=status.HTTP_201_CREATED)
+@router_reservation_by_seat.post("/", response_model=ReservationRead, status_code=status.HTTP_201_CREATED)
 def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate, db: Session = Depends(get_db)):
     """
     Reserve a specific seat for a user
@@ -41,7 +41,7 @@ def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate,
     return db_res
 
 
-@router_seat.delete("/", status_code=status.HTTP_200_OK)
+@router_reservation_by_seat.delete("/", status_code=status.HTTP_200_OK)
 def cancel_reservation(event_id: int, seat_id: int, cancel_in: ReservationCancel, db: Session = Depends(get_db)):
     """
     Cancel reservation for a specific seat (DELETE /events/{event_id}/seats/{seat_id}/reservation)
@@ -79,7 +79,7 @@ def cancel_reservation(event_id: int, seat_id: int, cancel_in: ReservationCancel
     return {"detail": "Reservation cancelled", "seat_id": seat.id}
 
 
-@router_event.get("/", response_model=List[ReservationRead])
+@router_reservations_by_event.get("/", response_model=List[ReservationRead])
 def list_reservations(event_id: int, db: Session = Depends(get_db)):
     """
     List all reservations for a given event
