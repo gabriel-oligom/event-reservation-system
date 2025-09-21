@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  db_test:
+    image: postgres:15
+    container_name: reservio_db_test
+    restart: always
+    env_file:
+      - .env.test # isolated test DB config to avoid conflict with dev DB
+    ports:
+      - "5434:5432"
