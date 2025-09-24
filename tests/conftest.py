@@ -67,7 +67,8 @@ def db_session():
     - Rolls back after the test to keep the DB clean.
     """
     connection = engine.connect()
-    transaction = connection.begin() #
+    transaction = connection.begin() # starts a DB transaction so all changes made during the test can be rolled back afterward, keeping the DB clean.
+
     session = TestingSessionLocal(bind=connection)
     try:
         yield session # pause here and give the access to the DB session
@@ -75,3 +76,29 @@ def db_session():
         session.close()
         transaction.rollback()
         connection.close()
+
+
+@pytest.fixture()
+def client(db_session):
+    """
+    Overrides the app's get_db dependency to use the test database session (db_session).
+    This ensures all requests made through TestClient interact with a controlled test database.
+    """
+
+    from app.main import app
+    from app.database import get_db
+
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
+    # Overrides get_db so all Depends(get_db) use the test session (db_session) during testing.
+    app.dependency_overrides[get_db] = override_get_db
+
+    from fastapi.testclient import TestClient
+    with TestClient(app) as c:
+        yield c
+
+    app.dependency_overrides.clear()
