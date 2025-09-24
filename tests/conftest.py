@@ -11,9 +11,12 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Load test environment variables
-load_dotenv(dotenv_path=".env.test")
+env_path = Path(__file__).resolve().parent.parent / ".env.test"
+
+load_dotenv(dotenv_path=env_path)
 
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL") # Load test DB URL from .env.test (not committed to git)
 if not TEST_DATABASE_URL:
