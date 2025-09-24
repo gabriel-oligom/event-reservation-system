@@ -20,7 +20,7 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL") # Load test DB URL from .env.
 if not TEST_DATABASE_URL:
     raise RuntimeError("TEST_DATABASE_URL not set. Check or create a .env.test file and load it before running pytest.")
 
-# Override DATABASE_URL for test environment
+# Override DATABASE_URL for test environment (to ensure it all for safety)
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 engine = create_engine(TEST_DATABASE_URL)
@@ -31,7 +31,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 def initialize_test_db():
     """
     Execute only once per pytest session
-    - Create all the tables (Base.metadata.create_all) in the test database.
+    - Create all the tables (Base.metadata.create_all) in the test database
     - Do a 'Base.metadata.drop_all' to clean it all after the tests
     """
 
@@ -50,6 +50,24 @@ def initialize_test_db():
         
     # Create tables in test database
     Base.metadata.create_all(bind=engine)
-    yield
+    yield # pause here, run the tests, then come back to clean up
     # Clean up final
     Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture()
+def db_session():
+    """
+    For each test:
+    - Opens a DB connection and starts a transaction.
+    - Yields a session bound to that connection.
+    - Rolls back after the test to keep the DB clean.
+    """
+    connection = engine.connect()
+    transaction = connection.begin() #
+    session = TestingSessionLocal(bind=connection)
+    try:
+        yield session # pause here and give the access to the DB session
+    finally:
+        session.close()
+        transaction.rollback()
+        connection.close()
