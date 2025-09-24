@@ -11,7 +11,6 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-from app.database import Base
 
 # Load test environment variables
 load_dotenv(dotenv_path=".env.test")
@@ -48,11 +47,16 @@ def initialize_test_db():
         if retries == 0:
             raise RuntimeError("TimedOut waiting for test Postgres to be ready at " + TEST_DATABASE_URL)
         
+    # Import Base here to ensure DATABASE_URL is set and the DB is ready before SQLAlchemy initializes.
+    # DATABASE_URL is overridden with TEST_DATABASE_URL before imports, so Base uses the test DB.
+    from app.database import Base 
+        
     # Create tables in test database
     Base.metadata.create_all(bind=engine)
     yield # pause here, run the tests, then come back to clean up
     # Clean up final
     Base.metadata.drop_all(bind=engine)
+
 
 @pytest.fixture()
 def db_session():
