@@ -24,3 +24,42 @@ def create_hold(event_id: int, seat_id: int, body: dict, db: Session = Depends(g
         raise HTTPException(status_code=400, detail=f"seconds must be between 1 and {MAX_HOLD_SECONDS}")
     
     expire_holds(db, event_id=event_id)
+
+    try:
+        seat = db.query(models.Seat).filter(models.Seat.id == seat_id, models.Seat.event_id == event_id).with_for_update().first()
+        if not seat:
+            raise HTTPException(status_code=404, detail="Seat not found for this event")
+        
+        if seat == "reserved":
+            raise HTTPException(status_code=409, detail="Seat already reserved")
+        
+        # check if seat already on hold (someone else)
+        if seat.status == "on_hold":
+            # check if hold belongs to same user
+            existing_hold = db.query(models.Hold.seat_id == models.Seat.id).first()
+            if existing_hold and existing_hold.user_id == user_id:
+                raise HTTPException(status_code=409, detail="You already hold this seat")
+            raise HTTPException(status_code=409, detail="Seat already on hold")
+        
+        now = datetime.now(timezone.utc)
+        user_holds_count = (db.query(models.Hold)
+                            .join(models.Seat, models.Hold.seat_id == models.Seat.id)
+                            .filter(models.Seat.event_id == event_id, models.Hold.user_id == user_id, models.Hold.expires_at > now)
+                            .count())
+        if user_holds_count >= MAX_HOLDS_PER_USER_PER_EVENT:
+            raise HTTPException(status_code=409, detail="User holds limit reached for this event")
+        
+        # create hold
+        expires_at = datetime.now(timezone.utc) + timedelta(seconds=seconds)
+        hold = models.Hold(user_id=user_id, seat_id=seat.id, held_at=datetime.now(timezone.utc), expires_at=expires_at)
+        db.add(hold)
+        seat.status = "on_hold"
+        db.commit
+        db.refresh(hold)
+        db.refresh(seat)
+        
+    except HTTPException as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detaill="could not create hold") from e
+    
+    return {"seat": seat.id, "user_id": hold.user_id, "expires_at": hold.expires_at.isoformat()}
