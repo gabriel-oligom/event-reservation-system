@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .database import Base
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 """
 Understanding the modules and imports
@@ -12,6 +12,8 @@ Understanding the modules and imports
 - DateTime : Add a column to store date and/or time
 - UniqueConstraint : Ensures that values in one or more columns are unique inside the table
 - relationship : Make easier the queries between tables, define relations
+- timezone :
+- timedelta :
 """
 
 class Event(Base):
@@ -39,6 +41,20 @@ class Seat(Base):
 
     reservation = relationship("Reservation", back_populates="seat", uselist=False) # 'uselist=False' tells SQLAlchemy to return a single object instead of a list
 
+    hold = relationship("Hold", back_populates="seat", uselist=False) # a new relationship, to "Hold"
+
+
+class Hold(Base):
+    __tablename__ = "holds"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    seat_id = Column(Integer, ForeignKey("seats.id"), unique=True, nullable=False) # unique : just a single hold for a seat
+    held_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+
+    seat = relationship("Seat", back_populates="hold", uselist=False)
+
 
 class Reservation(Base):
     __tablename__ = "reservations"
@@ -46,6 +62,6 @@ class Reservation(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, nullable=False) 
     seat_id = Column(Integer, ForeignKey("seats.id"), unique=True) # Create an unique index to this column
-    reserved_at = Column(DateTime, nullable=False, default=lambda:datetime.now(timezone.utc)) #
+    reserved_at = Column(DateTime(timezone=True), nullable=False, default=lambda:datetime.now(timezone.utc)) # Uses UTC timezone to ensure consistency across different servers and timezones
 
     seat = relationship("Seat", back_populates="reservation", uselist=False) # sets the current time in UTC when a new reservation is created
