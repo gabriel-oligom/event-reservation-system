@@ -12,8 +12,8 @@ Understanding the modules and imports
 - DateTime : Add a column to store date and/or time
 - UniqueConstraint : Ensures that values in one or more columns are unique inside the table
 - relationship : Make easier the queries between tables, define relations
-- timezone :
-- timedelta :
+- timezone : Use UTC time to avoid timezone headaches across servers
+- timedelta : Represent differences between two dates or times (hold duration)
 """
 
 class Event(Base):
