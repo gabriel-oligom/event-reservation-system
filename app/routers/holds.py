@@ -10,6 +10,7 @@ router = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/hold", tags=["hods
 MAX_HOLD_SECONDS = 60
 MAX_HOLDS_PER_USER_PER_EVENT = 3
 
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_hold(event_id: int, seat_id: int, body: dict, db: Session = Depends(get_db)):
     """
@@ -57,9 +58,41 @@ def create_hold(event_id: int, seat_id: int, body: dict, db: Session = Depends(g
         db.commit
         db.refresh(hold)
         db.refresh(seat)
-        
+
     except HTTPException as e:
         db.rollback()
         raise HTTPException(status_code=500, detaill="could not create hold") from e
     
     return {"seat": seat.id, "user_id": hold.user_id, "expires_at": hold.expires_at.isoformat()}
+
+
+@router.put("/", status_code=status.HTTP_200_OK)
+def refresh_hold(event_id: int, seat_id: int, body: dict, db: Session = Depends(get_db)):
+    user_id = body.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+    
+    seconds = int(body.get("seconds", MAX_HOLD_SECONDS))
+    if seconds <= 0 or seconds > MAX_HOLD_SECONDS:
+        raise HTTPException(status_code=400, detail=f"seconds must be between 1 and {MAX_HOLD_SECONDS}")
+    expire_holds(db, event_id=event_id)
+
+    try:
+        seat = db.query(models.Seat).filter(models.Seat.id == seat_id, models.Seat.event_id == event_id).with_for_update().first()
+        if not seat:
+            HTTPException(status_code=404, detail="Seat not found")
+
+        hold = db.query(models.Hold).filter(models.Hold.seat_id == seat.id).first()
+        if not hold:
+            raise HTTPException(status_code=403, detail="No active hold for this user on this seat")
+        
+        hold.expires_at = datetime.now(timezone.utc) + timedelta(seconds=seconds)
+        db.commit()
+        db.refresh(hold)
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Could nt=ot refresh holf") from e
+    
+    return {"seat_id": seat.id, "expires_at": hold.expires_at.isoformat()}
