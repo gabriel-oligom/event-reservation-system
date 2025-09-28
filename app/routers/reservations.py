@@ -4,6 +4,7 @@ from .. import models
 from ..schemas import ReservationCreate, ReservationRead, ReservationCancel
 from ..database import get_db
 from typing import List
+from ..utils import expire_holds
 
 router_reservation_by_seat = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/reservation", tags=["reservations"])
 router_reservations_by_event = APIRouter(prefix="/events/{event_id}/reservations", tags=["reservations"])
@@ -18,6 +19,8 @@ def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate,
     - db: injected SQLAlchemy session
     """
     try:
+        expire_holds(db, event_id=event_id)
+        
         seat = db.query(models.Seat).filter(models.Seat.id == seat_id, models.Seat.event_id == event_id).with_for_update().first()
 
         if not seat:
@@ -30,11 +33,16 @@ def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate,
                                      .join(models.Seat, models.Reservation.seat_id == models.Seat.id)
                                      .filter(models.Seat.event_id == event_id, models.Reservation.user_id == reservation_in.user_id).first())
         
+        hold = db.query(models.Hold).filter(models.Hold.seat_id == seat.id).first()
+        if not hold or hold.user_id != reservation_in.user_id:
+            raise HTTPException(status_code=403, detail="You must hold the seat before reserving")
+        
         if existing_user_reservation:
             raise HTTPException(status_code=409, detail="User already has a reservation for this event")
         
         db_res = models.Reservation(user_id=reservation_in.user_id, seat_id=seat.id)
         db.add(db_res)
+        db.delete(hold)
         seat.status = "reserved"
         db.commit()
         db.refresh(db_res)
