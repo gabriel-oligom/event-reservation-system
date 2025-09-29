@@ -102,7 +102,7 @@ def test_refresh_hold_extends_expiry(client):
 
 def test_limit_holds_per_user(client):
     """
-    Enforce the per-user-per-event hold limit (limit = 3)
+    Enforce the per-user-per-event hold limit (limit = 3).
     Attempts to hold more should return 409
     """
     # maximum number of holds allowed per user for this test
@@ -143,3 +143,29 @@ def test_reserve_requires_hold(client):
     seats = get_seats(client, event_id)
     seat1 = next(s for s in seats if s["number"] == 1)
     assert seat1["status"] == "reserved"
+
+
+def cancel_hold_and_authorization(client):
+    """
+    Only the holding user can cancel the hold.
+    After cancellation, seat becomes available
+    """
+    event = create_event(client, total_seats=2)
+    event_id = event["id"]
+
+    # create hold for user-e
+    r = post_hold(client, event_id, seat_id=1, user_id="user-e", seconds=60)
+    assert r.status_code == 201
+
+    # wrong user tries to cancel -> 403
+    r_wrong = delete_hold(client, event_id, seat_id=1, user_id="other-user")
+    assert r_wrong.status_code == 403, f"expected 403 for wrong user cancelling hold, got {r_wrong.status_code} {r_wrong.text}"
+
+    # correct user cancels
+    r_ok = delete_hold(client, event_id, seat_id=1, user_id="user-e")
+    assert r_ok.status_code == 200, f"expected succesful cancel, got {r_ok.status_code} r{r_ok.text}"
+
+    # for each seat in the list of seats, if number == 1 (the held seat), assert that status is 'available' after cancel hold
+    seats = get_seats(client, event_id)
+    seat1 = next(s for s in seats if s["number"] == 1)
+    assert seat1["status"] == "available"
