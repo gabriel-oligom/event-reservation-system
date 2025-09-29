@@ -120,3 +120,26 @@ def test_limit_holds_per_user(client):
     # this one should fail (exceeds limit)
     r = post_hold(client, event_id, seat_id=LIMIT+1, user_id="user-c", seconds=60)
     assert r.status_code == 409, f"expected 409 for exceeding holds, got {r.status_code} {r.text}"
+
+
+def test_reserve_requires_hold(client):
+    """
+    Reservation must only succeed if the user holds the seat
+    """ 
+    event = create_event(client, total_seats=2)
+    event_id = event["id"]
+
+    # attempt reserve without hold -> should fail (403)
+    r = post_reservation(client, event_id, seat_id=1, user_id="user-d")
+    assert r.status_code in (400, 403, 409), f"expected failure when reserving without hold, got {r.status_code}: {r.text}"
+
+    # it will reserve with a hold
+    r2 = post_hold(client, event_id, seat_id=1, user_id="user-d", seconds=60)
+    assert r2.status_code == 201
+    r3 = post_reservation(client, event_id, seat_id=1, user_id="user-d")
+    assert r3.status_code == 201, f"expected reservation success after hold, got {r3.status_code} {r3.text}"
+
+    # ensure seat status is "reserved"
+    seats = get_seats(client, event_id)
+    seat1 = next(s for s in seats if s["number"] == 1)
+    assert seat1["status"] == "reserved"
