@@ -2,7 +2,7 @@ import time
 from datetime import datetime, timezone
 import pytest
 
-# ----- helpers -----
+# ----- HELPERS -----
 """
 These functions act as 'shortcuts' to avoid repeating code
 """
@@ -45,7 +45,7 @@ def post_reservation(client, event_id, seat_id, user_id):
     return r
 
 
-# ----- tests -----
+# ----- TESTS -----
 
 def test_create_hold_and_expire(client):
     """
@@ -77,24 +77,46 @@ def test_create_hold_and_expire(client):
 
 
 def test_refresh_hold_extends_expiry(client):
-        """
-        Create a short hold, refresh it before expiry, and verify it remains on_hold
-        """
-        event = create_event(client, total_seats=2)
-        event_id = event["id"]
+    """
+    Create a short hold, refresh it before expiry, and verify it remains on_hold
+    """
+    event = create_event(client, total_seats=2)
+    event_id = event["id"]
 
-        # holds seat 1 for user-b for 1 second and checks if the request succeeded
-        r = post_hold(client, event_id, seat_id=1, user_id="user-b", seconds=1)
-        assert r.status_code == 201
+    # holds seat 1 for user-b for 1 second and checks if the request succeeded
+    r = post_hold(client, event_id, seat_id=1, user_id="user-b", seconds=1)
+    assert r.status_code == 201
 
-        # refreshes the hold to extend its duration to 3 seconds and checks for success
-        r2 = put_refresh_hold(client, event_id, seat_id=1, user_id="user-b", seconds=3)
-        assert r2.status_code == 200, f"refresh failed: {r2.status_code} {r2.text}"
+    # refreshes the hold to extend its duration to 3 seconds and checks for success
+    r2 = put_refresh_hold(client, event_id, seat_id=1, user_id="user-b", seconds=3)
+    assert r2.status_code == 200, f"refresh failed: {r2.status_code} {r2.text}"
 
-        # wait less than the refreshed time
-        time.sleep(2)
+    # wait less than the refreshed time
+    time.sleep(2)
 
-        # verify if the seat is still "on_hold" after the refresh
-        seats = get_seats(client, event_id)
-        seat1 = next(s for s in seats if s["number"] == 1)
-        assert seat1["status"] == "on_hold", "hold should have been refreshed and still be active"
+    # verify if the seat is still "on_hold" after the refresh
+    seats = get_seats(client, event_id)
+    seat1 = next(s for s in seats if s["number"] == 1)
+    assert seat1["status"] == "on_hold", "hold should have been refreshed and still be active"
+
+
+def test_limit_holds_per_user(client):
+    """
+    Enforce the per-user-per-event hold limit (limit = 3)
+    Attempts to hold more should return 409
+    """
+    # maximum number of holds allowed per user for this test
+    LIMIT = 3
+
+    # creates an event with 6 seats and stores its ID
+    event = create_event(client, total_seats=6)
+    event_id = event["id"]
+
+    # loops through seat IDs 1 to 3 to hold each one for the same user (limit is 3)
+    for i in range(1, LIMIT + 1):
+        r = post_hold(client, event_id, seat_id=i, user_id="user-c", seconds=60)
+        assert r.status_code == 201, f"expected 409 for exceeding holds, got {r.status_code} {r.text}"
+
+    # this one should fail (exceeds limit)
+    r = post_hold(client, event_id, seat_id=LIMIT+1, user_id="user-c", seconds=60)
+    assert r.status_code == 409, f"expected 409 for exceeding holds, got {r.status_code} {r.text}"
