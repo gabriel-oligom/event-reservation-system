@@ -74,3 +74,27 @@ def test_create_hold_and_expire(client):
     seats = get_seats(client, event_id)
     seat1_after = next(s for s in seats if s["number"] == 1)
     assert seat1_after["status"] == "available", "hold should have expired and seat become available"
+
+
+def test_refresh_hold_extends_expiry(client):
+        """
+        Create a short hold, refresh it before expiry, and verify it remains on_hold
+        """
+        event = create_event(client, total_seats=2)
+        event_id = event["id"]
+
+        # holds seat 1 for user-b for 1 second and checks if the request succeeded
+        r = post_hold(client, event_id, seat_id=1, user_id="user-b", seconds=1)
+        assert r.status_code == 201
+
+        # refreshes the hold to extend its duration to 3 seconds and checks for success
+        r2 = put_refresh_hold(client, event_id, seat_id=1, user_id="user-b", seconds=3)
+        assert r2.status_code == 200, f"refresh failed: {r2.status_code} {r2.text}"
+
+        # wait less than the refreshed time
+        time.sleep(2)
+
+        # verify if the seat is still "on_hold" after the refresh
+        seats = get_seats(client, event_id)
+        seat1 = next(s for s in seats if s["number"] == 1)
+        assert seat1["status"] == "on_hold", "hold should have been refreshed and still be active"
