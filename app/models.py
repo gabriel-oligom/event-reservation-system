@@ -65,3 +65,12 @@ class Reservation(Base):
     reserved_at = Column(DateTime(timezone=True), nullable=False, default=lambda:datetime.now(timezone.utc)) # Uses UTC timezone to ensure consistency across different servers and timezones
 
     seat = relationship("Seat", back_populates="reservation", uselist=False) # sets the current time in UTC when a new reservation is created
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
