@@ -4,7 +4,7 @@ from .. import models
 from ..schemas import ReservationCreate, ReservationRead, ReservationCancel
 from ..database import get_db
 from typing import List
-from ..utils import expire_holds
+from ..utils.expire_holds import expire_holds
 
 router_reservation_by_seat = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/reservation", tags=["reservations"])
 router_reservations_by_event = APIRouter(prefix="/events/{event_id}/reservations", tags=["reservations"])

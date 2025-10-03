@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 from .. import models
 from ..database import get_db
-from ..utils import expire_holds
+from ..utils.expire_holds import expire_holds
 
 router = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/hold", tags=["holds"])
 
