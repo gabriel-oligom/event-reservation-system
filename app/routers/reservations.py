@@ -5,17 +5,18 @@ from ..schemas import ReservationCreate, ReservationRead, ReservationCancel
 from ..database import get_db
 from typing import List
 from ..utils.expire_holds import expire_holds
+from ..deps import get_current_user
 
 router_reservation_by_seat = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/reservation", tags=["reservations"])
 router_reservations_by_event = APIRouter(prefix="/events/{event_id}/reservations", tags=["reservations"])
 
 @router_reservation_by_seat.post("/", response_model=ReservationRead, status_code=status.HTTP_201_CREATED)
-def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate, db: Session = Depends(get_db)):
+def reserve_seat(event_id: int, seat_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """
     Reserve a specific seat for a user
     - event_id: path parameter
     - seat_id: path parameter
-    - reservation in: body with { user_id }
+    - current_user: authenticated user making the reservation
     - db: injected SQLAlchemy session
     """
     try:
@@ -31,16 +32,16 @@ def reserve_seat(event_id: int, seat_id: int, reservation_in: ReservationCreate,
         
         existing_user_reservation = (db.query(models.Reservation)
                                      .join(models.Seat, models.Reservation.seat_id == models.Seat.id)
-                                     .filter(models.Seat.event_id == event_id, models.Reservation.user_id == reservation_in.user_id).first())
+                                     .filter(models.Seat.event_id == event_id, models.Reservation.user_id == current_user.id).first())
         
         hold = db.query(models.Hold).filter(models.Hold.seat_id == seat.id).first()
-        if not hold or hold.user_id != reservation_in.user_id:
+        if not hold or hold.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="You must hold the seat before reserving")
         
         if existing_user_reservation:
             raise HTTPException(status_code=409, detail="User already has a reservation for this event")
         
-        db_res = models.Reservation(user_id=reservation_in.user_id, seat_id=seat.id)
+        db_res = models.Reservation(user_id=current_user.id, seat_id=seat.id)
         db.add(db_res)
         db.delete(hold)
         seat.status = "reserved"
