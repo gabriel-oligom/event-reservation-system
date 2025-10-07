@@ -15,7 +15,7 @@ The Reservio project is a seat reservation system for events, and is still under
 - PostgreSQL database with Docker
 - Data validation with Pydantic
 - Integration testing with Pytest
-- Automatic API documentation (Swagger/OpenAPI)
+- Automatic API documentation (Swagger)
 - Isolated testing environment setup
 - Modular route and endpoint organization
 
@@ -28,3 +28,19 @@ The Reservio project is a seat reservation system for events, and is still under
 - Testing: **Pytest, TestClient**
 - Authentication: **JWT** (in progress)
 - Deployment: **AWS** (planned)
+
+## 🧪 Testing
+``` bash
+# Run tests
+docker-compose -f docker-compose.test.yml up --build
+```
+Includes:
+- User registration and login tests
+- Seat hold and reservation logic
+
+## 📦 Setup & Installation
+``` bash
+# Clone the repository
+git clone https://github.com/gabriel-oligom/reservio.git
+
+# (To be completed) Setup instructions coming soon...
