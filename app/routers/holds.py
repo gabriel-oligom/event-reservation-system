@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 from .. import models
 from ..database import get_db
 from ..utils.expire_holds import expire_holds
+from ..deps import get_current_user
 
 router = APIRouter(prefix="/events/{event_id}/seats/{seat_id}/hold", tags=["holds"])
 
@@ -12,11 +13,8 @@ MAX_HOLDS_PER_USER_PER_EVENT = 3
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_hold(event_id: int, seat_id: int, body: dict, db: Session = Depends(get_db)):
-    """
-    body: { "user_id": "<uuid>", "seconds": 60}
-    """
-    user_id = body.get("user_id")
+def create_hold(event_id: int, seat_id: int, db: Session = Depends(get_db), body: dict = Body(...), current_user: models.User = Depends(get_current_user)):
+    user_id = current_user.id
     if not user_id:
         raise HTTPException(status_code=400, detail="user_id required")
     
@@ -24,7 +22,7 @@ def create_hold(event_id: int, seat_id: int, body: dict, db: Session = Depends(g
     if seconds <= 0 or seconds > MAX_HOLD_SECONDS:
         raise HTTPException(status_code=400, detail=f"seconds must be between 1 and {MAX_HOLD_SECONDS}")
     
-    # Pass the current event ID to expire_holds to clean up expired holds for this event only
+    # Pass the current event ID to expire_holds to clean up expired holds for this event only;
     expire_holds(db, event_id=event_id)
 
     try:
@@ -59,7 +57,7 @@ def create_hold(event_id: int, seat_id: int, body: dict, db: Session = Depends(g
         hold = models.Hold(user_id=user_id, seat_id=seat.id, held_at=datetime.now(timezone.utc), expires_at=expires_at)
         db.add(hold)
         seat.status = "on_hold"
-        db.commit
+        db.commit()
         db.refresh(hold)
         db.refresh(seat)
 
