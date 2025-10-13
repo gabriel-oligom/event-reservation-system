@@ -1,3 +1,14 @@
+"""
+This FastAPI router manages seat holds within an event.
+
+Endpoints:
+- POST /: Creates a temporary hold on a seat for a user (with expiration time and limit per event).
+- PUT /: Refreshes (extends) the duration of an existing seat hold.
+- DELETE /: Cancels a seat hold, making the seat available again.
+
+It prevents race conditions via row-level locking and enforces limits per user/event.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
