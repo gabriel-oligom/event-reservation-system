@@ -48,7 +48,7 @@ def read_event(event_id: int, db: Session = Depends(get_db)):
 def create_event(event_in: EventCreate, db: Session = Depends(get_db)):
     """
     Create an event and generate the seats
-    - event_in: validated input data for the new event (it means that 'event_in' must be an 'EventRead' type of variable)
+    - event_in: validated input data for the new event (it means that 'event_in' must be an 'EventCreate' type of variable)
     - db: SQLAlchemy Session injected by Depends(get_db) 
     """
     # Defensive check
